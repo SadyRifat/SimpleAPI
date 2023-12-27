@@ -8,6 +8,9 @@ using SimpleAPI.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using SimpleAPI.Services;
+using SimpleAPI.Services.Impl;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,8 +25,39 @@ builder.Services.AddIdentity<AppUser, IdentityRole>()
     .AddDefaultTokenProviders();
 
 // Add services to the container.
-
 builder.Services.AddControllers();
+builder.Services.AddSingleton<TokenService, TokenServiceImpl>();
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        var tokenSettings = builder.Configuration.GetSection("Token");
+        var secretKey = tokenSettings.GetValue<string>("SecretKey");
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = tokenSettings.GetValue<string>("Issuer"),
+            ValidAudience = tokenSettings.GetValue<string>("Audience"),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.Forbidden; // 403
+                context.Fail("Authentication failed");
+                return Task.CompletedTask;
+            }
+        };
+    });
 
 builder.Services.Configure<BaseRoute>(builder.Configuration.GetSection("BaseRoute"));
 var baseroute = builder.Configuration.GetSection("BaseRoute").Get<BaseRoute>();
@@ -32,21 +66,6 @@ builder.Services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<B
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = "your_issuer",
-            ValidAudience = "your_issuer",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your_secret_key"))
-        };
-    });
 
 var app = builder.Build();
 
@@ -65,8 +84,6 @@ if (baseroute.BlockRoutingWithoutBase)
         }
     });
 }
-app.UsePathBase(new PathString(baseroute.Base));
-app.UseRouting();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -81,6 +98,10 @@ if (app.Environment.IsDevelopment())
     });
     app.UseSwaggerUI();
 }
+
+app.UsePathBase(new PathString(baseroute.Base));
+
+app.UseRouting();
 
 app.UseHttpsRedirection();
 
