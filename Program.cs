@@ -11,6 +11,7 @@ using System.Text;
 using SimpleAPI.Services;
 using SimpleAPI.Services.Impl;
 using System.Net;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,7 +47,8 @@ builder.Services.AddAuthentication(options =>
             ValidateIssuerSigningKey = true,
             ValidIssuer = tokenSettings.GetValue<string>("Issuer"),
             ValidAudience = tokenSettings.GetValue<string>("Audience"),
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            RoleClaimType = ClaimTypes.Role
         };
         options.Events = new JwtBearerEvents
         {

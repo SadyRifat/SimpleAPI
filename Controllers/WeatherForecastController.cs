@@ -1,6 +1,10 @@
+using Azure.Core;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using SimpleAPI.Dto;
+using SimpleAPI.Dto.User;
 using SimpleAPI.Services;
 using System.Security.Claims;
 
@@ -38,28 +42,28 @@ namespace SimpleAPI.Controllers
         }
 
         [HttpPost("login")]
-        public IActionResult Login()
+        public IActionResult Login([FromBody] AccessRequest accessRequest)
         {
-            // Implement login logic and generate tokens
             var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Name, "username"),
-            new Claim(ClaimTypes.Role, "YourUserRole")
-                // Add more claims as needed
-        };
+            {
+                new Claim(ClaimTypes.Name, accessRequest.UserEmail),
+                new Claim(ClaimTypes.Role, "Admin")
+            };
 
             var accessToken = _tokenService.GenerateAccessToken(claims);
-            // Implement refresh token logic if needed
-
-            return Ok(new { AccessToken = accessToken, RefreshToken = "your_refresh_token" });
+            var successResponse = new BaseResponse<object>
+            {
+                Data = accessToken,
+                Code = 200,
+                Error = null
+            };
+            return Ok(successResponse);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpGet("securedEndpoint")]
         public IActionResult SecuredEndpoint()
         {
-            // This endpoint is secured, and only authenticated users with a valid token can access it.
-            // The user information is available through the User property of the ControllerBase.
             var userId = User.FindFirst(ClaimTypes.Name)?.Value;
             return Ok($"Hello, authenticated user with ID: {userId}");
         }

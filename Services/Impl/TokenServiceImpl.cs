@@ -1,4 +1,7 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Azure.Core;
+using Microsoft.IdentityModel.Tokens;
+using SimpleAPI.Dto;
+using SimpleAPI.Dto.User;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -14,7 +17,7 @@ namespace SimpleAPI.Services.Impl
             _configuration = configuration;
         }
 
-        public string GenerateAccessToken(IEnumerable<Claim> claims)
+        public Token GenerateAccessToken(IEnumerable<Claim> claims)
         {
             var issuer = _configuration.GetValue<string>("Token:Issuer");
             var audience = _configuration.GetValue<string>("Token:Audience");
@@ -23,16 +26,17 @@ namespace SimpleAPI.Services.Impl
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            DateTime expireTime = DateTime.UtcNow.AddMinutes(accessTokenExpirationMinutes);
 
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(accessTokenExpirationMinutes),
+                expires: expireTime,
                 signingCredentials: creds
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return new Token(new JwtSecurityTokenHandler().WriteToken(token), expireTime, "null");
         }
     }
 }
