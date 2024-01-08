@@ -1,7 +1,4 @@
-using Azure.Core;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using SimpleAPI.Dto;
 using SimpleAPI.Dto.User;
@@ -44,6 +41,10 @@ namespace SimpleAPI.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] AccessRequest accessRequest)
         {
+            if(accessRequest.Password.Length <= 0)
+            {
+                throw new ApplicationException("Password Error");
+            }
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, accessRequest.UserEmail),

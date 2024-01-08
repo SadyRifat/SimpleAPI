@@ -1,6 +1,4 @@
-﻿using Azure.Core;
-using Microsoft.IdentityModel.Tokens;
-using SimpleAPI.Dto;
+﻿using Microsoft.IdentityModel.Tokens;
 using SimpleAPI.Dto.User;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

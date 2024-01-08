@@ -12,6 +12,7 @@ using SimpleAPI.Services;
 using SimpleAPI.Services.Impl;
 using System.Net;
 using System.Security.Claims;
+using SimpleAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,6 +101,8 @@ if (app.Environment.IsDevelopment())
     });
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<GlobalExceptionHandler>();
 
 app.UsePathBase(new PathString(baseroute.Base));
 
